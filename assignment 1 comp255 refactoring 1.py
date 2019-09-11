@@ -35,10 +35,10 @@ machine learning models.
 Please create new functions to implement your own feature engineering. The function should output training and testing dataset.
 '''
 def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize):
-
-
-    training = np.empty(shape=(0, 10))
-    testing = np.empty(shape=(0, 10))
+    numberOfFeatures = 9
+    
+    training = np.empty(shape=(0, numOfFeatures + 1))
+    testing = np.empty(shape=(0, numOfFeatures + 1))
     # deal with each dataset file
 
     for i in range(intParticipants):
