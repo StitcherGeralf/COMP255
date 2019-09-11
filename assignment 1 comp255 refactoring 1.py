@@ -34,11 +34,11 @@ machine learning models.
 
 Please create new functions to implement your own feature engineering. The function should output training and testing dataset.
 '''
-def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize):
-    numberOfFeatures = 9
-    
-    training = np.empty(shape=(0, numOfFeatures + 1))
-    testing = np.empty(shape=(0, numOfFeatures + 1))
+def feature_engineering(intParticipants, listSensors, intActivities, intBlockSize, intFeatures, dataWidth):
+    daliac_width = 24
+
+    training = np.empty(shape=(0, intFeatures*len(listSensors) + 1))
+    testing = np.empty(shape=(0, intFeatures*len(listSensors) + 1))
     # deal with each dataset file
 
     for i in range(intParticipants):
@@ -46,9 +46,9 @@ def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize
         print('deal with dataset ' + str(i + 1))
         for c in range(1, intActivities):
             #The last column is the activity ID
-            activity_data = df[df[intSensors] == c].values
+            activity_data = df[df[dataWidth] == c].values                  #### the last column is the activity ID
             b, a = signal.butter(4, 0.04, 'low', analog=False)
-            for j in range(intSensors):
+            for j in listSensors:                                   #### only need to smooth the data for the selected sensors, NOT all of them.
                 activity_data[:, j] = signal.lfilter(b, a, activity_data[:, j])
             
             datat_len = len(activity_data)
@@ -72,7 +72,7 @@ def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize
                 # a period of time. Finally we get 9 features and 1 label to construct feature dataset. You may consider all sensors' data and extract more
 
                 feature_sample = []
-                for i in range(3):
+                for i in listSensors:
                     feature_sample.append(np.min(sample_data[:, i]))
                     feature_sample.append(np.max(sample_data[:, i]))
                     feature_sample.append(np.mean(sample_data[:, i]))
@@ -82,12 +82,12 @@ def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize
             
             for s in range(testing_sample_number):
                 if s < training_sample_number - 1:
-                    sample_data = testing_data[1000*s:1000*(s + 1), :]
+                    sample_data = testing_data[intBlockSize*s:intBlockSize*(s + 1), :]
                 else:
-                    sample_data = testing_data[1000*s:, :]
+                    sample_data = testing_data[intBlockSize*s:, :]
 
                 feature_sample = []
-                for i in range(3):
+                for i in listSensors:
                     feature_sample.append(np.min(sample_data[:, i]))
                     feature_sample.append(np.max(sample_data[:, i]))
                     feature_sample.append(np.mean(sample_data[:, i]))
@@ -99,9 +99,6 @@ def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize
     df_testing = pd.DataFrame(testing)
     df_training.to_csv('training_data.csv', index=None, header=None)
     df_testing.to_csv('testing_data.csv', index=None, header=None)
-
-    # We assume that the feature sample will be consistently sized across all Participant
-    return (feature_sample.size - 1)
 
 '''
 When we have training and testing feature set, we could build machine learning models to recognize human activities.
@@ -188,9 +185,11 @@ def model_training_and_evaluation(intFeatures):
 
 if __name__ == '__main__':
     numParticipants = 19
-    numSensors = 24
+    lstSensors = [0, 1, 2]     # wrist accelerometers X, Y, Z,
     numActivities = 14
     numBlockSize = 1000
+    numOfFeatures = 3       # min max and mean
+    daliac_width = 24
 
-    numFeatures = feature_engineering(numParticipants, numSensors, numActivities, numBlockSize)
-    model_training_and_evaluation(numFeatures)
+    feature_engineering(numParticipants, lstSensors, numActivities, numBlockSize, numOfFeatures, daliac_width)
+    model_training_and_evaluation(numOfFeatures*len(lstSensors))
