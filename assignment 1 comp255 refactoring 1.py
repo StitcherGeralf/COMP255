@@ -8,6 +8,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import make_scorer, accuracy_score, confusion_matrix
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
+import datetime
 
 #Commented by: James Xi Zheng 12/Aug/2019
 #please create functions to do the following jobs
@@ -33,8 +34,8 @@ machine learning models.
 
 Please create new functions to implement your own feature engineering. The function should output training and testing dataset.
 '''
-def feature_engineering(intParticipants, intSensors, intActivities):
-    
+def feature_engineering(intParticipants, intSensors, intActivities, intBlockSize):
+
 
     training = np.empty(shape=(0, 10))
     testing = np.empty(shape=(0, 10))
@@ -59,14 +60,14 @@ def feature_engineering(intParticipants, intSensors, intActivities):
             # to represent the raw data. In this example code, we define each period of time contains 1000 data points. Each period of time contains 
             # different data points. You may consider overlap segmentation, which means consecutive two segmentation share a part of data points, to 
             # get more feature samples.
-            training_sample_number = training_len // 1000 + 1
-            testing_sample_number = (datat_len - training_len) // 1000 + 1
+            training_sample_number = training_len // intBlockSize + 1
+            testing_sample_number = (datat_len - training_len) // intBlockSize + 1
 
             for s in range(training_sample_number):
                 if s < training_sample_number - 1:
-                    sample_data = training_data[1000*s:1000*(s + 1), :]
+                    sample_data = training_data[intBlockSize*s:intBlockSize*(s + 1), :]
                 else:
-                    sample_data = training_data[1000*s:, :]
+                    sample_data = training_data[intBlockSize*s:, :]
                 # in this example code, only three accelerometer data in wrist sensor is used to extract three simple features: min, max, and mean value in
                 # a period of time. Finally we get 9 features and 1 label to construct feature dataset. You may consider all sensors' data and extract more
 
@@ -108,6 +109,7 @@ When we have training and testing feature set, we could build machine learning m
 Please create new functions to fit your features and try other models.
 '''
 def model_training_and_evaluation(intFeatures):
+
     #Features are numbered 0 to intFeatures-1, the activityID is the last value in the row
     #We add 0 to remind ourselves that there should NOT be a +1
     activityIDIndex = intFeatures + 0
@@ -132,6 +134,9 @@ def model_training_and_evaluation(intFeatures):
     X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
 
+    # Testing efficiency using elapsed time
+    KNNStartTime = datetime.datetime.now()
+
     # Build KNN classifier, in this example code
     knn = KNeighborsClassifier(n_neighbors=3)
     knn.fit(X_train, y_train)
@@ -141,6 +146,10 @@ def model_training_and_evaluation(intFeatures):
     # code, when n_neighbors is set to 4, the accuracy achieves 0.757.
     y_pred = knn.predict(X_test)
     print('Accuracy: ', accuracy_score(y_test, y_pred))
+
+    KNNFinishtime = datetime.datetime.now()
+    print('KNN Training Time: ', KNNFinishtime - KNNStartTime)
+
     # We could use confusion matrix to view the classification for each activity.
     print(confusion_matrix(y_test, y_pred))
     
@@ -149,7 +158,11 @@ def model_training_and_evaluation(intFeatures):
     # It will take a long time to find the optimal classifier.
     # the accuracy for SVM classifier with default parameters is 0.71, 
     # which is worse than KNN. The reason may be parameters of svm classifier are not optimal.  
-    # Another reason may be we only use 9 features and they are not enough to build a good svm classifier. 
+    # Another reason may be we only use 9 features and they are not enough to build a good svm classifier.
+
+    # Testing efficiency using elapsed time
+    SVMStartTime = datetime.datetime.now()
+
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2, 1e-3, 1e-4],
                      'C': [1e-3, 1e-2, 1e-1, 1, 10, 100, 100]},
                     {'kernel': ['linear'], 'C': [1e-3, 1e-2, 1e-1, 1, 10, 100]}]
@@ -161,6 +174,10 @@ def model_training_and_evaluation(intFeatures):
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     print('Accuracy: ', accuracy_score(y_test, y_pred))
+
+    SVMFinishtime = datetime.datetime.now()
+    print('SVM Training Time: ', SVMFinishtime - SVMStartTime)
+
     print(confusion_matrix(y_test, y_pred))
 
 # print("# Tuning hyper-parameters for %s" % score)
@@ -173,6 +190,7 @@ if __name__ == '__main__':
     numParticipants = 19
     numSensors = 24
     numActivities = 14
+    numBlockSize = 1000
 
-    numFeatures = feature_engineering(numParticipants, numSensors, numActivities)
+    numFeatures = feature_engineering(numParticipants, numSensors, numActivities, numBlockSize)
     model_training_and_evaluation(numFeatures)
